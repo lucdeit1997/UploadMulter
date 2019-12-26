@@ -1,37 +1,107 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Node file upload</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-rc.2/css/materialize.min.css">
+<title>Proper Title</title>
+<style>
+	#selectedFiles img {
+		max-width: 200px;
+		max-height: 200px;
+		float: left;
+		margin-bottom:10px;
+	}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>File Upload</h1>
-        <%= typeof msg != 'undefined' ? msg: '' %>
-        <form action="/upload" method="POST" enctype="multipart/form-data">
-            <div class="file-field input-field">
-              <div class="btn">
-                <span>File</span>
-                <input name="myImage" type="file">
-              </div>
-              <div class="file-path-wrapper">
-                <input class="file-path validate" type="text">
-              </div>
-            </div>
-            <button type="submit" class="btn">Submit</button>
-          </form>
-          <br>
-          <img src="<%= typeof file != 'undefined' ? file: '' %>" alt="" class="img-responsive">
-    </div>
-    
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"
-        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
-        crossorigin="anonymous">
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-rc.2/js/materialize.min.js"></script>
+
+	<form id="myForm" method="post">
+        Files: <input type="file" id="files" name="files[]" multiple><br/>
+        <div id="selectedFiles"></div>
+        <input style="margin-top:20px;" type="submit">
+	</form>
+
+  <script
+  src="https://code.jquery.com/jquery-3.4.1.min.js"
+  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+  crossorigin="anonymous"></script>
+
+<script>
+
+	var selDiv = "";
+	var storedFiles = [];
+
+	$(document).ready(function() {
+
+		$("#files").on("change", handleFileSelect);
+		
+		selDiv = $("#selectedFiles"); 
+		$("#myForm").on("submit", handleForm);
+		
+		$("body").on("click", ".selFile", removeFile);
+
+	});
+	
+	/*Preview images/double check before upload to server*/	
+	function handleFileSelect(e) {
+		var files = e.target.files;
+    // parse FileList to array
+		storedFiles = Array.from(files);
+    console.log({ storedFiles  });
+    //begin show image preview
+		storedFiles.forEach(function(f) {			
+			if(!f.type.match("image.*")) {
+				return;
+			}
+			var reader = new FileReader();
+			reader.onload = function (e) {
+				var html = "<div><img src=\"" + e.target.result + "\" data-file='"+f.name+"' class='selFile' title='Click to remove'>" + f.name + "<br clear=\"left\"/></div>";
+				selDiv.append(html);
+			}
+			reader.readAsDataURL(f); 
+    // end show image preview
+		});
+
+	}
+	
+	/*Upload file to server via FormData()*/
+	function handleForm(e) {
+		e.preventDefault();
+		var dataF = new FormData();
+		var len = storedFiles.length;
+		for (var i = 0; i < len; i++) {
+			dataF.append("files", storedFiles[i]);
+		}
+
+    $.ajax({
+        url:'/upload-multiple',
+        type:'post',
+        data: dataF, // Là cách truyền giá trị của form sang trang xử lý
+        mimeTypes:"multipart/form-data", // Thuộc tính đi kèm theo để nhận giá trị truyền sang trang xử lý
+        contentType: false,
+        cache: false,
+        processData: false, 
+        success: function(data) {
+            // Kiểm tra lỗi nếu có
+            if (data != "") {
+                alert(data);
+            }else{
+                window.location.reload();
+            }
+        },
+    });
+	}
+	
+	/*Remove file before upload to server*/	
+	function removeFile(e) {
+      var file = $(this).data("file");
+      for(var i=0; i < storedFiles.length; i++) {
+        if(storedFiles[i].name === file) {
+          storedFiles.splice(i,1);
+          break;
+        }
+      }
+      $(this).parent().remove();
+	}
+</script>
 
 </body>
 </html>

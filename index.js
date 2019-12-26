@@ -8,22 +8,27 @@ app.set('views', 'views');
 app.use(express.static('./public'))
 //set storage Engine
 const storage = multer.diskStorage({
-    destination:'./public/uploads',
+    destination: function (req, file, cb) {
+        let outputPath = path.resolve(__dirname, './files/');
+      cb(null, outputPath)
+    },
     filename: function(req, file, cb){
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));// Date.now() is minis
     }    
 })
 // init upload
-const upload = multer({
+const upload_multiple = multer({
     storage: storage,
-    // limits: { 
-    //     fieldSize: 10
-    // },
     fileFilter: function(req, file, cb)
     {
         checkFileType(file, cb);
     }
-}).single('myImage');
+
+}).fields([
+    { name: 'files' , maxCount: 10 },
+    { name: 'images', maxCount: 10 },
+    { name: 'audios', maxCount: 10 },
+])
 
 //check file tyle
 function checkFileType(file, cb)
@@ -42,33 +47,15 @@ function checkFileType(file, cb)
         cb('Erorr: Images Only')
     }
 }
+
 app.get('/', (req, res) =>{
     res.render('index');
 })
 
-app.post('/upload',(req, res) =>{
-    upload(req, res, (err) =>{
-        if(err){
-            res.render('index', {
-                msg: err
-            })
-        }else
-        {
-            console.log(req.file);
-            if(req.file === undefined)
-            {
-                res.render('index', {
-                    msg: 'Erorr: No File Selected'
-                })
-            }else{
-                res.render('index', {
-                    msg: 'File Uploaded',
-                    file: `uploads/${req.file.filename}`
-                })
-            }    
-        }
-    })
+app.post('/upload-multiple', upload_multiple, (req, res) =>{
+   console.log(req.files);
 })
+
 app.listen('3000', ( req, res ) =>{
     console.log('server started on  port 3000')
 })  
